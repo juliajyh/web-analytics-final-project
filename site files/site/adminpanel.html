@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>admin pannel</title>
+    <style>
+    li{
+        border: 2px solid black;
+        margin: 5px;
+        padding: 5px;
+    }
+    .border{
+        border: 2px solid black;
+        margin: 5px;
+        padding: 5px;
+    }
+    ul{
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+    }
+    </style>
+</head>
+<body>
+<a href="/">return to homepage</a>
+<form method="GET" action="/logout">
+    <button type="submit">logout</button>
+</form>
+<div class="border">
+    <h3>Create new user:</h3>
+    <form method="POST" action="/users">
+        <label for="username">username:</label>
+        <input type="text" name="username" id="usernameInput" required>
+        <label for="email">email:</label>
+        <input type="text" name="email" id="emailInput" required>
+        <label for="password">password:</label>
+        <input type="password" name="password" id="passwordInput" required>
+        <label for="isAdmin">isAdmin:</label>
+        <input type="checkbox" name="isAdmin" id="adminCheckbox">
+        <button type="submit">create</button>
+    </form>
+</div>
+
+<div class="border">
+    <h3>Users:</h3>
+    note: only one user can be updated at a time
+    <ul id="users">
+    </ul>
+</div>
+
+<script>
+    function updateUser(userName, userObj)
+    {
+        if (userObj.password === "") delete userObj.password;
+        if (confirm(`are you sure you want to update user: ${userName}`))
+        {
+            fetch("https://" + location.host + `/update/${userName}`, 
+            {
+                method: "POST",
+                headers: {"Content-Type": "application/x-www-form-urlencoded",},
+                body: new URLSearchParams(Object.entries(userObj)).toString(),
+            })
+            .then((response => response.ok))
+            .then(response => {
+                if (response)
+                    location.reload();
+                else
+                    alert("something went wrong");
+            });
+        }
+    }
+
+    function deleteUser(userName)
+    {
+        if (confirm(`are you sure you want to delete user: ${userName}`))
+        {
+            fetch("https://" + location.host + `/delete/${userName}`, {method: "POST"})
+            .then((response => response.ok))
+            .then(response => {
+                if (response)
+                    location.reload();
+                else
+                    alert("something went wrong");
+            });
+        }
+    }
+
+    function createUserli(user)
+    {
+        let li = document.createElement("li");
+        li.innerHTML = `
+            <b>creation date: </b>${user.creation_date}
+            <b>password hash: </b>${user.password_hash}
+            <br>
+            <b>user name: </b><input type="text" class="nameInput">
+            <b>email: </b><input type="text" class="emailInput">
+            <b>new password: </b><input type="password" class="passwordInput">
+            <b>is Admin: </b><input type="checkbox" class="isAdminCheckbox">
+            <button class="updateButton">update</button>
+            <button class="deleteButton">delete</button>
+        `;
+        
+        let nameInput = li.querySelector(".nameInput");
+        let emailInput = li.querySelector(".emailInput");
+        let passwordInput = li.querySelector(".passwordInput");
+        let isAdmin = li.querySelector(".isAdminCheckbox");
+        let updateButton = li.querySelector(".updateButton");
+        let deleteButton = li.querySelector(".deleteButton");
+
+        const originalName = user.username;
+
+        nameInput.value = originalName;
+        emailInput.value = user.email;
+        isAdmin.checked = user.isAdmin;
+
+        updateButton.onclick = (event) => {updateUser(
+            originalName,
+            {
+                username: nameInput.value,
+                email: emailInput.value,
+                password: passwordInput.value,
+                isAdmin: isAdmin.checked
+            }
+        )};
+
+        deleteButton.onclick = (event) => {deleteUser(originalName)};
+
+        return li;
+    }
+
+    document.addEventListener("DOMContentLoaded", (event) => {
+        const userList = document.querySelector("#users");
+        const url = "https://" + location.host + "/users";
+        console.log(url);
+        fetch(url)
+        .then(response => response.json())
+        .then((users) => {
+            console.log(users);
+            for (username in users)
+            {
+                let user = users[username];
+                userList.appendChild(createUserli(user));
+            }
+        })
+    })
+</script>
+
+</body>
+</html>

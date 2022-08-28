@@ -1,0 +1,109 @@
+<!DOCTYPE html> 
+<html lang="en-Us">                                                                                                                                           
+<head>                                                                                                                                                            
+<title>Load Times</title>                                                                                                                                         
+<meta charset="utf-8">                                                                                                                                        
+<script src="https://cdn.zingchart.com/zingchart.min.js"></script>                                                                                            
+<script src="https://cdn.zinggrid.com/zinggrid.min.js"></script>                                                                                          
+</head>
+<body>
+<a href="/">return to homepage</a>
+<form method="GET" action="/logout">
+	<button type="submit">logout</button>
+</form>
+<div id="myChart"></div>
+<zing-grid caption="Visitors Info" data='[]' id="userGrid"></zing-grid>
+<script>
+
+function getLatencyData(entries, browserName)
+{
+	let latencies = [];
+	for (let key in entries)
+	{
+		let entry = entries[key];
+		if (!entry.latency || !entry.userAgent.toLowerCase().includes(browserName)) //|| entry.userAgent.toLowerCase().includes("edg"))
+			continue;	
+		if(entry.userAgent.toLowerCase().includes("edg")){
+			if (browserName == "edg") {
+				latencies.push(entry.latency);
+			} 
+			continue;
+		}
+		if(entry.userAgent.toLowerCase().includes("chrome")){
+			if (browserName == "chrome" && !entry.userAgent.toLowerCase().includes("mobile")) {
+				latencies.push(entry.latency);
+			}
+			continue;		
+		}
+		latencies.push(entry.latency);
+	}
+	
+	return latencies;
+}
+
+function getGridData(entries)
+{
+	let gridEntries = [];
+	for (let key in entries)
+	{
+		let entry = entries[key];
+		let newGridEntry = {};
+		newGridEntry.id = entry._id;
+		newGridEntry.agent = entry.userAgent;
+		newGridEntry.latency = entry.latency;
+		gridEntries.push(newGridEntry);
+	}
+	return gridEntries;
+}
+
+fetch("https://jiayivv.site/json/static")
+.then(response => response.json())
+.then(entries => {
+	zingchart.render({
+		id: "myChart",
+		data: {
+			type: "area",
+			title: { text: "Load times in different browsers" },
+                        legend: {
+			},
+			"scale-y":{
+			 	"label":{
+					"text": "Load time", 
+				}},
+			"scale-x":{
+				"label":{
+					"text": "Visitors"
+				}},
+			series: [
+				{ "tooltip-text": "%v ms",
+				  "line-color": "#23DC43",
+ 				  "background-color": "#69F3A3",
+ 				  text: "Chrome",
+				  values: getLatencyData(entries, "chrome")},
+				{ "tooltip-text": "%v ms", 
+				  "line-coolor": "#F40B25",
+				  "background-color" : "#F85365",
+				  text: "Firefox",
+				  values: getLatencyData(entries, "firefox")},
+				{ "tooltip-text": "%v ms",
+				  "line-color": "#0742F8",
+				  "background-color" : "#406DF9",
+				  text: "Edge",
+				  values: getLatencyData(entries, "edg")},
+				{ "tooltip-text": "%v ms",
+				  "line-color": "#788087",
+				  "background-color": "#A3A7AC",
+				  text: "Safari",
+				  values: getLatencyData(entries, "safari")},
+			]
+
+		}
+	});
+	
+		
+	let grid = document.querySelector("#userGrid");
+	grid.setAttribute("data", JSON.stringify(getGridData(entries)));
+});
+</script>
+</body>
+</html>

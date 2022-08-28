@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en-Us">
+<head>
+    <title>pannel</title>
+    <meta charset="utf-8">
+    <script src="https://cdn.zingchart.com/zingchart.min.js"></script>
+    <script src="https://cdn.zinggrid.com/zinggrid.min.js"></script>
+</head>
+
+<body>
+    <h1>Welcome!</h1>
+    <form method="GET" action="/logout">
+        <button type="submit">logout</button>
+    </form>
+    <br>
+    <a hidden href="/admin_panel" id="adminlink">admin panel</a>
+    <br>
+    <a href="/metric">detailed report</a>
+    <div id="myChart"></div>
+    <div id="chart2"></div>
+    <zing-grid caption="Users Info" data='[]' id="userGrid"></zing-grid>
+    <script>
+    function getBrowserIndex(agentString, browsers)
+    {
+        for (let i = 0; i < browsers.length; i++)
+        {
+            if (agentString.toLowerCase().includes(browsers[i].toLowerCase()))
+            {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    function getBrowserData(entries, names)//the last name index should be the error/not listed entry
+    {
+        let browserMetrics = Array.apply(null, Array(names.length)).map(function (x, i) { return 0; });
+        for (let key in entries)
+        {
+            let entry = entries[key];
+            if (!entry.userAgent) //if no user agent was provided add it to not listed
+            {
+                browserMetrics[names.length - 1]++;
+                continue;
+            }
+            
+            let index = getBrowserIndex(entry.userAgent, names);
+            if (index >= 0)
+                browserMetrics[index]++;
+            else
+                browserMetrics[names.length - 1]++;
+        }
+        return browserMetrics;
+    }
+
+    function getLatencyData(entries, bucketSize=100, numBuckets=10)
+    {
+        let latencies = [];
+        let hist = Array.apply(null, Array(numBuckets)).map(function (x, i) { return 0; });
+        for (let key in entries)
+        {
+            let entry = entries[key];
+            if (!entry.latency)
+                continue;
+            latencies.push(entry.latency);
+        }
+
+        for (latency of latencies)
+        {
+            let value = 0;
+            if (latency != 0)
+                value = Math.floor(latency/bucketSize);
+
+            if (value > numBuckets)
+                hist[numBuckets - 1]++;
+            else
+                hist[value]++;
+        }
+
+        return hist;
+    }
+
+    function getGridData(entries)
+    {
+        let gridEntries = [];
+        for (let key in entries)
+        {
+            let entry = entries[key];
+            let newGridEntry = {};
+            newGridEntry.language = entry.language;
+            newGridEntry.screen_size = entry.screen_dim;
+            newGridEntry.agent = entry.userAgent;
+            gridEntries.push(newGridEntry);
+        }
+        return gridEntries;
+    }
+
+    fetch("https://" + location.host + "/isadmin")
+    .then(response => response.ok)
+    .then(status => {
+        if (status)
+            document.querySelector("#adminlink").hidden = false;
+    })
+
+    fetch("https://jiayivv.site/json/static")
+    .then(response => response.json())
+    .then(entries => {
+        const browserNames  = ["Edge", "Firefox", "Chrome", "Safari", "Other/Not listed"];
+        const searchStrings = ["edg", "firefox", "chrome", "safari", "none"]
+
+        zingchart.render({
+            id: "myChart",
+            data: {
+                type: "bar",
+                title: { text: "User browser type" },
+                "scale-x": {
+                    labels: browserNames
+                },
+                series: [
+                    { values: getBrowserData(entries, searchStrings) },
+                ]
+            }
+        });
+
+        zingchart.render({
+            id: "chart2",
+            data: {
+                type: "bar",
+                title: { text: "Load time histogram" },
+                plot: { aspect: "histogram" },
+                "scale-x": {
+                    values: "0:50:5",
+                    label: { text: "latency (MS)" }
+                },
+                series: [
+                    { values: getLatencyData(entries, bucketSize=5) },
+                ]
+            }
+        });
+
+        let grid = document.querySelector("#userGrid");
+        grid.setAttribute("data", JSON.stringify(getGridData(entries)));
+    });
+</script>
+</body>
+</html>

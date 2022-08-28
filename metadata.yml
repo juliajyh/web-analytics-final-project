@@ -1,0 +1,16 @@
+---
+:id: 128145701
+:submitters:
+- :name: Evan Martinez
+  :email: epmartinez@ucsd.edu
+- :name: Jiayi Hu
+  :email: jih071@ucsd.edu
+- :name: Luis Orellana-Ayala
+  :email: lorellan@ucsd.edu
+:created_at: !ruby/object:ActiveSupport::TimeWithZone
+  utc: 2022-06-09 06:30:11.277319000 Z
+  zone: !ruby/object:ActiveSupport::TimeZone
+    name: America/Los_Angeles
+  time: 2022-06-08 23:30:11.277319000 Z
+:status: processed
+:score: 97.0
